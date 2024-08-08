@@ -1,14 +1,10 @@
-"use client"
-import { CanvasInterface, CanvasClient } from '@dscvr-one/canvas-client-sdk';
-
 import Image from "next/image";
+
+import { handleResponse } from "./components/canvas";
 
 export default function Home() {
 
-  if (typeof window !== 'undefined') {
-    const canvasClient = new CanvasClient();
-    console.log(canvasClient);
-  }
+  handleResponse();
 
 
   return (
