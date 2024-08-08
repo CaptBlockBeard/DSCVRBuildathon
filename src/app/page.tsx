@@ -1,14 +1,43 @@
-import Image from "next/image";
+"use client";
 
+import Image from "next/image";
+import { useEffect, useState } from "react";
 import { handleResponse } from "./components/canvas";
 
 export default function Home() {
 
-  handleResponse();
+  const [canvasClient, setCanvasClient] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [content, setContent] = useState<any>(null);
+
+  // load the canvas client
+  async function loadCanvasClient() {
+    const response = await handleResponse();
+    const user = response?.user; // Access user safely
+    const content = response?.content; // Access content safely
+    if (user && content) {
+      console.log(user);
+      console.log(content);
+      setUser(user);
+      setContent(content);
+    }
+  }
+
+  useEffect(() => {
+    loadCanvasClient();
+  }, []);
+
 
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      {user && content && (
+        <div>
+          <h1>{user.name}</h1>
+          <p>{content.message}</p>
+        </div>
+      )}
+
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
           Get started by editing&nbsp;

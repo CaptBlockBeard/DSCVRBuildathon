@@ -14,6 +14,9 @@ if (response) {
   const content= response.untrusted.content;
   console.log(user);
   console.log(content);
+
+  return {user, content};
 }
+
 };
 
