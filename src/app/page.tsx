@@ -37,10 +37,6 @@ const query = gql`
       followingCount
       followerCount
       dscvrPoints
-      wallets {
-      address
-        isPrimary
-      }
     }
   }
 `;
@@ -57,10 +53,7 @@ export default function Home() {
       followingCount: number;
       followerCount: number;
       dscvrPoints: number;
-      wallets: {
-        address: string;
-        isPrimary: boolean;
-      }[];
+     
     };
   }
 
@@ -269,6 +262,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <NextReactP5Wrapper sketch={sketch} />
       <button onClick={handleMintClick}>Mint your custom dscvr NFT</button>
+      <WalletMultiButton />
     </main>
   );
 }
