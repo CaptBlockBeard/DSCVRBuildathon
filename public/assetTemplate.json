@@ -1,0 +1,41 @@
+{
+    "name": "Your jackpot dscvr profile",
+    "description": "Generative from your dscvr profile.",
+    "image": "",
+    "external_url": "https://www.captainblockbeard.site/",
+    "attributes": [
+      {
+        "trait_type": "Chest Material",
+        "value": "Polished Steel"
+      },
+      {
+        "trait_type": "Lock Type",
+        "value": "Golden Padlock"
+      },
+      {
+        "trait_type": "Treasure Type",
+        "value": "Glowing Gems"
+      },
+      {
+        "trait_type": "Chest Pattern",
+        "value": "Celtic Swirls"
+      },
+      {
+        "trait_type": "Lid Status",
+        "value": "Open"
+      },
+      {
+        "trait_type": "Glow Intensity",
+        "value": "Bright"
+      },
+      {
+        "trait_type": "Surrounding Objects",
+        "value": "Scattered Coins"
+      },
+      {
+        "trait_type": "Jackpot Banner",
+        "value": "Golden Ribbon"
+      }
+    ]
+  }
+  

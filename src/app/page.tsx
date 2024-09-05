@@ -9,6 +9,18 @@ import { NextReactP5Wrapper } from "@p5-wrapper/next";
 import { P5CanvasInstance } from "@p5-wrapper/react";
 
 
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { mplCore } from '@metaplex-foundation/mpl-core'
+
+import { generateSigner } from '@metaplex-foundation/umi'
+import { create } from '@metaplex-foundation/mpl-core'
+
+import dotenv from 'dotenv';
+dotenv.config();
+
+const umi = createUmi(process.env.RPC_URL!).use(mplCore())
+
+
 const client = new GraphQLClient("https://api.dscvr.one/graphql");
 
 const query = gql`
@@ -121,37 +133,102 @@ export default function Home() {
     if (p5Ref.current) {
       const p5Instance = p5Ref.current;
   
-      // Get the canvas element using the p5 instance's select method or by directly querying it
       const canvasElement = document.querySelector('canvas');
   
       if (canvasElement) {
-        canvasElement.toBlob(async (blob: any) => {
-          const formData = new FormData();
-          formData.append('canvasImage', blob, 'canvas-image.png');
+        return new Promise((resolve, reject) => {
+          canvasElement.toBlob(async (blob) => {
+            const formData = new FormData();
+            formData.append('canvasImage', blob as Blob, 'canvas-image.png');
   
-          try {
-            const response = await fetch('/api/saveCanvas', {
-              method: 'POST',
-              body: formData,
-            });
+            try {
+              const response = await fetch('/api/saveCanvas', {
+                method: 'POST',
+                body: formData,
+              });
   
-            if (response.ok) {
-              const data = await response.json();
-              console.log('Canvas saved successfully on IPFS:', data.ipfsHash);
-            } else {
-              console.error('Failed to save canvas');
+              if (response.ok) {
+                const data = await response.json();
+                console.log('Canvas saved successfully on IPFS:', data.ipfsHash);
+                resolve(data.ipfsHash);
+              } else {
+                console.error('Failed to save canvas');
+                reject('Failed to save canvas');
+              }
+            } catch (error) {
+              console.error('Error saving canvas:', error);
+              reject(error);
             }
-          } catch (error) {
-            console.error('Error saving canvas:', error);
-          }
-        }, 'image/png');
+          }, 'image/png');
+        });
       } else {
         console.log('Canvas element not found');
+        return null;
       }
     } else {
       console.log('Canvas is not ready yet');
+      return null;
     }
   };
+  const generateMetadata = (imageUrl:any) => {
+    return {
+      name: "Your jackpot dscvr profile",
+      description: "Generative from your dscvr profile.",
+      image: `https://gateway.pinata.cloud/ipfs/${imageUrl}`,
+      external_url: "https://www.captainblockbeard.site/",
+      attributes: [
+        { trait_type: "Chest Material", value: "Polished Steel" },
+        { trait_type: "Lock Type", value: "Golden Padlock" },
+        { trait_type: "Treasure Type", value: "Glowing Gems" },
+        { trait_type: "Chest Pattern", value: "Celtic Swirls" },
+        { trait_type: "Lid Status", value: "Open" },
+        { trait_type: "Glow Intensity", value: "Bright" },
+        { trait_type: "Surrounding Objects", value: "Scattered Coins" },
+        { trait_type: "Jackpot Banner", value: "Golden Ribbon" },
+      ],
+    };
+  };
+
+  const handleMintClick = async () => {
+    try {
+      const imageUrl = await saveCanvasToServer();
+      if (imageUrl) {
+        const metadata = generateMetadata(imageUrl);
+  
+        const metadataFormData = new FormData();
+        const blob = new Blob([JSON.stringify(metadata)], { type: 'application/json' });
+        metadataFormData.append('file', blob, 'metadata.json');
+  
+        const response = await fetch('/api/uploadMetadata', {
+          method: 'POST',
+          body: metadataFormData,
+        });
+  
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Metadata saved successfully on IPFS:', data.ipfsHash);
+  
+          // Now mint the asset using the IPFS URL
+          const assetSigner = generateSigner(umi);
+          const result = await create(umi, {
+            asset: assetSigner,
+            name: 'My Asset', // Adjust the asset name as necessary
+            uri: `https://gateway.pinata.cloud/ipfs/${data.ipfsHash}`,
+          }).sendAndConfirm(umi);
+  
+          console.log('Asset minted successfully:', result);
+          alert(`NFT minted successfully: ${result}`);
+        } else {
+          console.error('Failed to save metadata');
+          alert('Failed to save metadata');
+        }
+      }
+    } catch (error) {
+      console.error('Error minting NFT:', error);
+      alert('Error minting NFT');
+    }
+  };
+  
   
 
   return (
@@ -163,7 +240,7 @@ export default function Home() {
         <p>DSCVR Points: {user?.dscvrPoints || 'Not available'}</p>
       </div> */}
       <NextReactP5Wrapper sketch={sketch} />
-      <button onClick={saveCanvasToServer}>Mint NFT</button>
+      <button onClick={handleMintClick}>Mint your custom dscvr NFT</button>
     </main>
   );
 }
