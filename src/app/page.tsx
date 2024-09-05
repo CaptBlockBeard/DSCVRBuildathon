@@ -9,7 +9,7 @@ import { NextReactP5Wrapper } from "@p5-wrapper/next";
 import { P5CanvasInstance } from "@p5-wrapper/react";
 
 
-const client = new GraphQLClient("https://api.dscvr.one/graphqlsss");
+const client = new GraphQLClient("https://api.dscvr.one/graphql");
 
 const query = gql`
   query($username: String!) {
