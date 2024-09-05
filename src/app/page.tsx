@@ -84,7 +84,7 @@ export default function Home() {
     };
 
     p5.setup = () => {
-      p5.createCanvas(600, 400);
+      p5.createCanvas(850, 600);
       p5.noLoop();
     };
 
@@ -155,14 +155,14 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div>
+      {/* <div>
         <h1>User: {user?.username || 'Not available'}</h1>
         <p>Following: {user?.followingCount || 'Not available'}</p>
         <p>Followers: {user?.followerCount || 'Not available'}</p>
         <p>DSCVR Points: {user?.dscvrPoints || 'Not available'}</p>
-      </div>
+      </div> */}
       <NextReactP5Wrapper sketch={sketch} />
-      <button onClick={saveCanvasToServer}>Save Canvas</button>
+      <button onClick={saveCanvasToServer}>Mint NFT</button>
     </main>
   );
 }
