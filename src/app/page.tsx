@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { GraphQLClient, gql } from "graphql-request";
 import { CanvasClient } from '@dscvr-one/canvas-client-sdk';
+import { createNoopSigner, createSignerFromKeypair, generateSigner, publicKey, signerIdentity, some } from '@metaplex-foundation/umi';
 
 import { type Sketch } from "@p5-wrapper/react";
 import { NextReactP5Wrapper } from "@p5-wrapper/next";
@@ -9,7 +10,6 @@ import { P5CanvasInstance } from "@p5-wrapper/react";
 
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { mplCore } from '@metaplex-foundation/mpl-core';
-import { generateSigner } from '@metaplex-foundation/umi';
 import { create } from '@metaplex-foundation/mpl-core';
 
 import dotenv from 'dotenv';
@@ -27,6 +27,10 @@ const query = gql`
       followingCount
       followerCount
       dscvrPoints
+      wallets {
+      address
+        isPrimary
+      }
     }
   }
 `;
@@ -39,6 +43,10 @@ export default function Home() {
       followingCount: number;
       followerCount: number;
       dscvrPoints: number;
+      wallets: {
+        address: string;
+        isPrimary: boolean;
+      }[];
     };
   }
 
@@ -121,9 +129,9 @@ export default function Home() {
         p5.image(img, 0, 0);
       }
       // make the text bigger 
-      p5.textSize(32);
-      p5.text(user?.username || 'DSCVR', 400, 310);
       p5.textSize(20);
+      p5.text(user?.username || 'DSCVR', 400, 310);
+      p5.textSize(12);
       p5.text(user?.dscvrPoints || '0', 400, 350);
     };
   };
@@ -209,9 +217,14 @@ export default function Home() {
           console.log('Metadata saved successfully on IPFS:', data.ipfsHash);
 
           // Create and sign the transaction using Metaplex and Umi
-          const assetSigner = generateSigner(umi);
+          umi.use(signerIdentity(createNoopSigner(publicKey(user?.wallets[0].address as string))));
+
+          // Generate the Asset KeyPair
+          const asset = generateSigner(umi);
+          
+
           const transaction = await create(umi, {
-            asset: assetSigner,
+            asset,
             name: `${user?.username} dscvr jackpot profile`,
             uri: `https://gateway.pinata.cloud/ipfs/${data.ipfsHash}`,
           }).sendAndConfirm(umi)
