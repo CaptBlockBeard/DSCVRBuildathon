@@ -56,13 +56,22 @@ export default function Home() {
 
         if (response) {
           const user = response.untrusted.user;
+          if (user?.username) {
+            const gqlResponse = await fetch("https://api.dscvr.one/graphql", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                query: query,
+                variables: { username: user.username },
+              }),
+            }).then(res => res.json());
 
-          // if (user?.username) {
-          //   const gqlResponse = await client.request<UserResponse>(query, { username: user.username });
-          //   if (gqlResponse?.userByName) {
-          //     setUser(gqlResponse.userByName);
-          //   }
-          // }
+            if (gqlResponse?.data?.userByName) {
+              setUser(gqlResponse.data.userByName);
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -108,14 +117,14 @@ export default function Home() {
       p5.background(colorStr);
 
       if (img) {
-        img.resize(300, 0);
         p5.tint(colorStr);
         p5.image(img, 0, 0);
       }
-
+      // make the text bigger 
+      p5.textSize(32);
       p5.text(user?.username || 'DSCVR', 400, 310);
+      p5.textSize(20);
       p5.text(user?.dscvrPoints || '0', 400, 350);
-      p5.text(colorStr, 30, 60);
     };
   };
 
