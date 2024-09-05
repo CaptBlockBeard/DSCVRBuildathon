@@ -111,9 +111,29 @@ export default function Home() {
     };
   };
 
-  const saveCanvas = () => {
+  const saveCanvasToServer = async () => {
     if (p5Ref.current) {
-      p5Ref.current.saveCanvas('myCanvas', 'png'); // Save the canvas
+      const canvas = p5Ref.current.canvas;
+      canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('canvasImage', blob, 'canvas-image.png');
+        formData.append('username', user.username); 
+        try {
+          const response = await fetch('/api/saveCanvas', {
+            method: 'POST',
+            body: formData,
+          });
+  
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Canvas saved successfully on IPFS:', data.ipfsHash);
+          } else {
+            console.error('Failed to save canvas');
+          }
+        } catch (error) {
+          console.error('Error saving canvas:', error);
+        }
+      }, 'image/png');
     } else {
       console.log('Canvas is not ready yet');
     }
@@ -128,7 +148,7 @@ export default function Home() {
         <p>DSCVR Points: {user?.dscvrPoints || 'Not available'}</p>
       </div>
       <NextReactP5Wrapper sketch={sketch} />
-      <button onClick={saveCanvas}>Save Canvas</button>
+      <button onClick={saveCanvasToServer}>Save Canvas</button>
     </main>
   );
 }
