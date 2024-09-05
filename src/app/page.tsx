@@ -6,6 +6,8 @@ import { CanvasClient } from '@dscvr-one/canvas-client-sdk';
 
 import { type Sketch } from "@p5-wrapper/react";
 import { NextReactP5Wrapper } from "@p5-wrapper/next";
+import { P5CanvasInstance } from "@p5-wrapper/react";
+
 
 const client = new GraphQLClient("https://api.dscvr.one/graphqlsss");
 
@@ -34,7 +36,7 @@ export default function Home() {
 
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const p5Ref = useRef(null);
+  const p5Ref = useRef<P5CanvasInstance | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -67,11 +69,14 @@ export default function Home() {
     return <div>Loading...</div>;
   }
 
+
+
+
   const sketch: Sketch = (p5) => {
     p5Ref.current = p5; // Store the p5 instance in the ref
 
-    let img;
-    let font;
+    let img: any;
+    let font: any;
 
     p5.preload = () => {
       font = p5.loadFont('Roboto/Roboto-Regular.ttf');
@@ -86,7 +91,7 @@ export default function Home() {
     p5.draw = () => {
       const str = user?.username || 'DSCVR';
       let hash = 0;
-      str.split('').forEach((char) => {
+      str.split('').forEach((char: any) => {
         hash = char.charCodeAt(0) + ((hash << 5) - hash);
       });
       let colorStr = '#';
@@ -113,31 +118,40 @@ export default function Home() {
 
   const saveCanvasToServer = async () => {
     if (p5Ref.current) {
-      const canvas = p5Ref.current.canvas;
-      canvas.toBlob(async (blob) => {
-        const formData = new FormData();
-        formData.append('canvasImage', blob, 'canvas-image.png');
-        formData.append('username', user.username); 
-        try {
-          const response = await fetch('/api/saveCanvas', {
-            method: 'POST',
-            body: formData,
-          });
+      const p5Instance = p5Ref.current;
   
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Canvas saved successfully on IPFS:', data.ipfsHash);
-          } else {
-            console.error('Failed to save canvas');
+      // Get the canvas element using the p5 instance's select method or by directly querying it
+      const canvasElement = document.querySelector('canvas');
+  
+      if (canvasElement) {
+        canvasElement.toBlob(async (blob: any) => {
+          const formData = new FormData();
+          formData.append('canvasImage', blob, 'canvas-image.png');
+  
+          try {
+            const response = await fetch('/api/saveCanvas', {
+              method: 'POST',
+              body: formData,
+            });
+  
+            if (response.ok) {
+              const data = await response.json();
+              console.log('Canvas saved successfully on IPFS:', data.ipfsHash);
+            } else {
+              console.error('Failed to save canvas');
+            }
+          } catch (error) {
+            console.error('Error saving canvas:', error);
           }
-        } catch (error) {
-          console.error('Error saving canvas:', error);
-        }
-      }, 'image/png');
+        }, 'image/png');
+      } else {
+        console.log('Canvas element not found');
+      }
     } else {
       console.log('Canvas is not ready yet');
     }
   };
+  
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
