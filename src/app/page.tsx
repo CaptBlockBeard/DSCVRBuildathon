@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, useRef } from "react";
 import { GraphQLClient, gql } from "graphql-request";
 import { CanvasClient } from '@dscvr-one/canvas-client-sdk';
@@ -8,18 +7,15 @@ import { type Sketch } from "@p5-wrapper/react";
 import { NextReactP5Wrapper } from "@p5-wrapper/next";
 import { P5CanvasInstance } from "@p5-wrapper/react";
 
-
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { mplCore } from '@metaplex-foundation/mpl-core'
-
-import { generateSigner } from '@metaplex-foundation/umi'
-import { create } from '@metaplex-foundation/mpl-core'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { mplCore } from '@metaplex-foundation/mpl-core';
+import { generateSigner } from '@metaplex-foundation/umi';
+import { create } from '@metaplex-foundation/mpl-core';
 
 import dotenv from 'dotenv';
 dotenv.config();
 
-const umi = createUmi(process.env.RPC_URL!).use(mplCore())
-
+const umi = createUmi(process.env.NEXT_PUBLIC_RPC_URL!).use(mplCore());
 
 const client = new GraphQLClient("https://api.dscvr.one/graphql");
 
@@ -46,31 +42,31 @@ export default function Home() {
     };
   }
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserResponse['userByName'] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const p5Ref = useRef<P5CanvasInstance | null>(null);
+  const [canvasClient, setCanvasClient] = useState<CanvasClient | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const canvasClient = new CanvasClient();
-        const response = await canvasClient.ready(); // Changed to use the ready method
+        const client = new CanvasClient();
+        const response = await client.ready();
+        setCanvasClient(client);
 
         if (response) {
           const user = response.untrusted.user;
-          const content = response.untrusted.content;
 
-          if (user?.username) {
-            const gqlResponse: UserResponse = await client.request(query, { username: user.username });
-            if (gqlResponse?.userByName) {
-              setUser(gqlResponse.userByName);
-            }
-          }
+          // if (user?.username) {
+          //   const gqlResponse = await client.request<UserResponse>(query, { username: user.username });
+          //   if (gqlResponse?.userByName) {
+          //     setUser(gqlResponse.userByName);
+          //   }
+          // }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
-        console.log("Fetching data complete");
         setIsLoading(false);
       }
     }
@@ -81,11 +77,8 @@ export default function Home() {
     return <div>Loading...</div>;
   }
 
-
-
-
   const sketch: Sketch = (p5) => {
-    p5Ref.current = p5; // Store the p5 instance in the ref
+    p5Ref.current = p5;
 
     let img: any;
     let font: any;
@@ -117,10 +110,7 @@ export default function Home() {
       if (img) {
         img.resize(300, 0);
         p5.tint(colorStr);
-        p5.image(img, 0, 0); // Draw the image at the top-left corner
-        console.log(`Image size: ${img.width} x ${img.height}`);
-      } else {
-        console.log('Image not loaded yet');
+        p5.image(img, 0, 0);
       }
 
       p5.text(user?.username || 'DSCVR', 400, 310);
@@ -131,26 +121,24 @@ export default function Home() {
 
   const saveCanvasToServer = async () => {
     if (p5Ref.current) {
-      const p5Instance = p5Ref.current;
-  
       const canvasElement = document.querySelector('canvas');
-  
+
       if (canvasElement) {
-        return new Promise((resolve, reject) => {
+        return new Promise<string>((resolve, reject) => {
           canvasElement.toBlob(async (blob) => {
             const formData = new FormData();
             formData.append('canvasImage', blob as Blob, 'canvas-image.png');
-  
+
             try {
               const response = await fetch('/api/saveCanvas', {
                 method: 'POST',
                 body: formData,
               });
-  
+
               if (response.ok) {
                 const data = await response.json();
                 console.log('Canvas saved successfully on IPFS:', data.ipfsHash);
-                resolve(data.ipfsHash);
+                resolve(data.ipfsHash); // Return the IPFS hash as a string
               } else {
                 console.error('Failed to save canvas');
                 reject('Failed to save canvas');
@@ -161,16 +149,12 @@ export default function Home() {
             }
           }, 'image/png');
         });
-      } else {
-        console.log('Canvas element not found');
-        return null;
       }
-    } else {
-      console.log('Canvas is not ready yet');
-      return null;
     }
+    return null; // Return null if canvas is not ready
   };
-  const generateMetadata = (imageUrl:any) => {
+
+  const generateMetadata = (imageUrl: string) => {
     return {
       name: "Your jackpot dscvr profile",
       description: "Generative from your dscvr profile.",
@@ -185,60 +169,66 @@ export default function Home() {
         { trait_type: "Glow Intensity", value: "Bright" },
         { trait_type: "Surrounding Objects", value: "Scattered Coins" },
         { trait_type: "Jackpot Banner", value: "Golden Ribbon" },
+        { trait_type: "dscvr Points", value: user?.dscvrPoints || '0' },
+        { trait_type: "Username", value: user?.username || 'DSCVR' },
       ],
     };
   };
 
   const handleMintClick = async () => {
+    if (!canvasClient) {
+      console.error('Canvas client not initialized');
+      return;
+    }
+
     try {
       const imageUrl = await saveCanvasToServer();
-      if (imageUrl) {
+      if (typeof imageUrl === 'string') {
         const metadata = generateMetadata(imageUrl);
-  
+
         const metadataFormData = new FormData();
         const blob = new Blob([JSON.stringify(metadata)], { type: 'application/json' });
         metadataFormData.append('file', blob, 'metadata.json');
-  
+
         const response = await fetch('/api/uploadMetadata', {
           method: 'POST',
           body: metadataFormData,
         });
-  
+
         if (response.ok) {
           const data = await response.json();
           console.log('Metadata saved successfully on IPFS:', data.ipfsHash);
-  
-          // Now mint the asset using the IPFS URL
+
+          // Create and sign the transaction using Metaplex and Umi
           const assetSigner = generateSigner(umi);
-          const result = await create(umi, {
+          const transaction = await create(umi, {
             asset: assetSigner,
-            name: 'My Asset', // Adjust the asset name as necessary
+            name: `${user?.username} dscvr jackpot profile`,
             uri: `https://gateway.pinata.cloud/ipfs/${data.ipfsHash}`,
-          }).sendAndConfirm(umi);
-  
-          console.log('Asset minted successfully:', result);
-          alert(`NFT minted successfully: ${result}`);
+          }).sendAndConfirm(umi)
+
+      
+          console.log('Asset minted successfully:', transaction);
+          alert(`NFT minted successfully: ${transaction}`);
         } else {
           console.error('Failed to save metadata');
           alert('Failed to save metadata');
         }
+      } else {
+        console.error('Failed to save canvas: No image URL returned');
       }
     } catch (error) {
       console.error('Error minting NFT:', error);
-      alert('Error minting NFT');
+      if (error instanceof Error) {
+        alert(`Error minting NFT: ${error.message}`);
+      } else {
+        alert('An unknown error occurred while minting the NFT');
+      }
     }
   };
-  
-  
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      {/* <div>
-        <h1>User: {user?.username || 'Not available'}</h1>
-        <p>Following: {user?.followingCount || 'Not available'}</p>
-        <p>Followers: {user?.followerCount || 'Not available'}</p>
-        <p>DSCVR Points: {user?.dscvrPoints || 'Not available'}</p>
-      </div> */}
       <NextReactP5Wrapper sketch={sketch} />
       <button onClick={handleMintClick}>Mint your custom dscvr NFT</button>
     </main>
