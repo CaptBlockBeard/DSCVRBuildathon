@@ -2,7 +2,8 @@
 import { useEffect, useState, useRef } from "react";
 import { GraphQLClient, gql } from "graphql-request";
 import { CanvasClient } from '@dscvr-one/canvas-client-sdk';
-import { createNoopSigner, createSignerFromKeypair, generateSigner, publicKey, signerIdentity, some } from '@metaplex-foundation/umi';
+import { createNoopSigner, createSignerFromKeypair, generateSigner, signerIdentity, some } from '@metaplex-foundation/umi';
+import { publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 
 import { type Sketch } from "@p5-wrapper/react";
 import { NextReactP5Wrapper } from "@p5-wrapper/next";
@@ -12,8 +13,17 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { mplCore } from '@metaplex-foundation/mpl-core';
 import { create } from '@metaplex-foundation/mpl-core';
 
+import useCanvasWallet from "./components/CanvasWalletProvider";
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+
 import dotenv from 'dotenv';
 dotenv.config();
+
+if (typeof window !== 'undefined') {
+  window.Buffer = Buffer;
+}
+
 
 const umi = createUmi(process.env.NEXT_PUBLIC_RPC_URL!).use(mplCore());
 
@@ -36,6 +46,10 @@ const query = gql`
 `;
 
 export default function Home() {
+  let { publicKey: walletPublicKey } = useWallet();
+  const { connectWallet, walletAddress, iframe } = useCanvasWallet();
+
+
   interface UserResponse {
     userByName: {
       id: string;
@@ -216,8 +230,10 @@ export default function Home() {
           const data = await response.json();
           console.log('Metadata saved successfully on IPFS:', data.ipfsHash);
 
-          // Create and sign the transaction using Metaplex and Umi
-          umi.use(signerIdentity(createNoopSigner(publicKey(user?.wallets[0].address as string))));
+          if (walletPublicKey) {
+            const umiPublicKeyValue = umiPublicKey(walletPublicKey.toBase58());
+            umi.use(signerIdentity(createNoopSigner(umiPublicKeyValue)));
+          }
 
           // Generate the Asset KeyPair
           const asset = generateSigner(umi);
