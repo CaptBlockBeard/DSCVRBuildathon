@@ -80,11 +80,11 @@ export default function Home() {
 
     p5.preload = () => {
       font = p5.loadFont('Roboto/Roboto-Regular.ttf');
-      img = p5.loadImage('Cptn_BlockBeard_w2.jpg');
+      img = p5.loadImage('chest.jpg');
     };
 
     p5.setup = () => {
-      p5.createCanvas(850, 600);
+      p5.createCanvas(800, 700);
       p5.noLoop();
     };
 
@@ -111,7 +111,8 @@ export default function Home() {
         console.log('Image not loaded yet');
       }
 
-      p5.text(user?.username || 'DSCVR', 30, 30);
+      p5.text(user?.username || 'DSCVR', 400, 310);
+      p5.text(user?.dscvrPoints || '0', 400, 350);
       p5.text(colorStr, 30, 60);
     };
   };
